@@ -13,6 +13,17 @@ mod telemetry;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut error_count = 1;
+    loop {
+        if let Err(e) = consumer().await {
+            println!("{}", &e);
+            error_count = error_count + 1;
+            println!("count errors: {}", &error_count);
+        }
+    }
+}
+
+async fn consumer() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let mut consumer_client = EventHubConsumerClient::new_from_connection_string(
         EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME, //"viter-consumer".to_string(),
@@ -36,6 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     client.init().await?;
 
     let mut counter = 0;
+    let mut last_device = None;
     let mut key_cache = HashMap::<String, String>::new();
     while let Some(event) = stream.next().await {
         let event = event?;
@@ -52,6 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     )
                 }
                 let device_id = telemetry.device_id.unwrap_or(String::from("Unknown"));
+                last_device = Some(device_id.clone());
                 let t_key = ensure_key(&client, &mut key_cache, &device_id, "temperature").await?;
                 let h_key = ensure_key(&client, &mut key_cache, &device_id, "humidity").await?;
 
@@ -76,7 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        println!("counter: {}", counter);
+        println!("counter: {} {:?}", counter, last_device);
         counter += 1;
     }
     // Close the stream
