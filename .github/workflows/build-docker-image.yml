@@ -18,4 +18,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag kurinnyi/${{ github.event.repository.name }}:$(date +%s)
+      run: docker build . --file Dockerfile --tag kurinnyi/${{ github.event.repository.name }}:$(date +%s) --platform linux/arm/v7
